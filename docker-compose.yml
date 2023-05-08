@@ -1,0 +1,57 @@
+version: "3.8"
+services:
+  zigbee2mqtt:
+    container_name: zigbee_to_mqtt
+    image: koenkk/zigbee2mqtt:latest
+    depends_on: 
+      - mosquitto
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    environment:
+      - TZ=Europe/Brussels
+    volumes:
+      - /data/zigbee2mqtt/:/app/data/:rw
+      - /run/udev:/run/udev:ro
+    devices:
+      - /dev/serial/by-id/zigbee_dongle:/dev/ttyACM0
+    user: 1000:1000
+    group_add:
+      - dialout
+    networks:
+      - proxy_traefik-net
+    privileged: true
+  mosquitto:
+    container_name: mosquitto
+    image: eclipse-mosquitto:latest
+    restart: unless-stopped
+    ports:
+      - 1883:1883
+      - 9001:9001
+    volumes:
+        - /data/mqtt/config:/mosquitto/config
+        - /data/mqtt/log:/mosquitto/log
+        - /data/mqtt/data:/mosquitto/data
+    networks:
+        - proxy_traefik-net
+  home_assistant:
+    container_name: home_assistant
+    image: homeassistant/home-assistant:stable
+    depends_on: 
+      - mosquitto
+    restart: unless-stopped
+    ports:
+      - 8123:8123
+    volumes:
+      - /data/homeassistant:/config:rw
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=Europe/Brussels
+    networks:
+      - proxy_traefik-net
+    privileged: true
+
+
+networks:
+  proxy_traefik-net:
+
